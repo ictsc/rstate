@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns="http://www.w3.org/1999/html">
+<head>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+    <script
+            src="https://code.jquery.com/jquery-3.1.1.min.js"
+            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,700;1,900&display=swap" rel="stylesheet">
+
+    <style type="text/css">
+        <!--
+        body {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        -->
+    </style>
+
+    <meta charset="UTF-8">
+</head>
+<body>
+<div class="ui container">
+    <table class="ui segment celled table">
+        <thead>
+        <tr>
+            <th>Team</th>
+            <th>ProbCode</th>
+            <th>Status</th>
+            <th>要求時刻</th>
+            <th>終了時刻</th>
+        </tr>
+        </thead>
+        <tbody id="bodyList">
+
+        </tbody>
+    </table>
+</div>
+<script>
+    window.addEventListener('load', function () {
+        getList();
+    });
+    window.addEventListener('focus', getList);
+
+    function getList() {
+        document.getElementById('bodyList').innerHTML = "";
+        var url = window.location.pathname.replace(/\/+$/, '') + '/list';
+        fetch(url)
+            .then(function (data) {
+                return data.json();
+            })
+            .then(function (json) {
+                json.sort(function (a, b) {
+                    if (a.created_time > b.created_time) return -1;
+                    if (a.created_time < b.created_time) return 1;
+                    return 0;
+                });
+                for (var i = 0; i < json.length; i++) {
+
+                    let created_time = new Date(json[i].created_time / 1000000);
+                    let end_time = new Date(json[i].end_time / 1000000);
+
+
+                    var row = document.getElementById('bodyList').insertRow();
+                    let state = ""
+
+                    if (json[i].state == "終了") {
+                        row.className = "positive"
+                        state = "<i class=\"icon checkmark\"></i>" + json[i].state;
+                    } else if (json[i].state == "実行中") {
+                        row.className = "warning"
+                        state = "<i class=\"notched loading circle icon\"></i>" + json[i].state;
+                    } else if (json[i].state == "エラー" || json[i].state == "Limit") {
+                        row.className = "negative"
+                        state = "<i class=\"icon close\"></i>" + json[i].state;
+                    } else {
+                        state = "<i class=\"icon ambulance\"></i>" + json[i].state;
+                    }
+
+                    row.insertCell().textContent = json[i].team_id;
+                    row.insertCell().textContent = json[i].prob_id;
+                    row.insertCell().innerHTML = state;
+                    row.insertCell().textContent = created_time.toLocaleString('ja-JP');
+                    if (json[i].state == "終了") {
+                        row.insertCell().textContent = end_time.toLocaleString('ja-JP');
+                    }else{
+                        row.insertCell().textContent = ""
+                    }
+                }
+            });
+    }
+</script>
+</body>
+</html>

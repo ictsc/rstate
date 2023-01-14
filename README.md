@@ -5,16 +5,17 @@ Terraformを利用した展開・再展開
 ## Usage
 
 
+## Web Endpoint
 
-### WebUI
+## 運営むけ
 
 > /admin
 
-チーム向け
+### チーム向け
 
 > /status/:token
 
-### APIEndPoint
+## APIEndPoint
 
 > POST /admin/postJob
 

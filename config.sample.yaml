@@ -1,0 +1,18 @@
+adminpass: "hogehuga"
+rootURL: "https://"
+logLevel: "debug"
+#("debug", "info", "warn", "error", "dpanic", "panic", and "fatal")
+
+worker:
+  maxThread: 3
+
+terraform:
+  options:
+    workingDirectory: "/deploy"
+    parallelism: 4
+  secrets:
+    sakuraCloudAccessToken: ""
+    sakuraCloudAccessTokenSecret: ""
+    awsAccessKeyId: ""
+    awsSecretAccessKey: ""
+    cloudflareApiToken: ""

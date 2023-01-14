@@ -1,0 +1,16 @@
+version: "3"
+services:
+  terraform_agent:
+    environment:
+      SLACK_WEBHOOK_URL:
+      DISCORD_WEBHOOK_team100:
+    build: .
+    #working_dir: /deploy
+    network_mode: "host"
+    tty: true
+    #    ports:
+    #      - "8089:8089"
+    volumes:
+      # tfファイルのディレクトリ
+      - ./deploy:/deploy
+      - /etc/localtime:/etc/localtime:ro
