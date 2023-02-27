@@ -154,7 +154,7 @@ func (j *Worker) Run() {
 				//terraform init
 				tfclient := terraform.NewClient(j.terraformPath, j.workDir, job.TeamID, "10", true, j.env)
 				j.logger.Info("Recreate Problem Start", "TeamID", job.TeamID, "ProbID", job.ProbID)
-				_, targetCount, err := tfclient.RecreateFromProblemId(job.ProbID, true)
+				_, targetCount, err := tfclient.RecreateFromProblemId(job.ProbID, false)
 				if err != nil {
 					j.logger.Errorw("Recreate Problem Error", "TeamID", job.TeamID, "ProbID", job.ProbID, "targetCount", targetCount, "error", err)
 					j.SetState(job.Id, StateError)
