@@ -25,7 +25,7 @@ func NewClient(path, workDir, workspace, parallelism string, stdout bool, envs [
 	mergeEnv := append(os.Environ(), envs...)
 	mergeEnv = append(mergeEnv, "TF_WORKSPACE="+workspace)
 	mergeEnv = append(mergeEnv, "TF_LOG=ERROR")
-	logPath := fmt.Sprintf("TF_LOG_PATH=./recreate-logs/%s-%s.json", workspace, time.Now().Format("2006-01-02-15-04-05"))
+	logPath := fmt.Sprintf("TF_LOG_PATH=/app/recreate-logs/%s-%s.json", workspace, time.Now().Format("2006-01-02-15-04-05"))
 	mergeEnv = append(mergeEnv, logPath)
 	c := &Client{
 		parallelism: parallelism,
