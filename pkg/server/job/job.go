@@ -182,7 +182,7 @@ func (j *Worker) IsJobExist(teamid, probid string) bool {
 	if utils.IsAdminTeam(teamid) {
 		// 運営チームは、admin-worker-poolでworker 1で利用する
 		for _, obj := range j.c.Items() {
-			job := obj.Object.(Job)
+			job := obj.Object.(*Job)
 			if job.TeamID == teamid && job.ProbID == probid && (job.State == StateWait || job.State == StateRunning) {
 				return true
 			}
@@ -196,7 +196,7 @@ func (j *Worker) IsJobExist(teamid, probid string) bool {
 
 	// 参加者1チームにつき1問リクエストできる。
 	for _, obj := range j.c.Items() {
-		job := obj.Object.(Job)
+		job := obj.Object.(*Job)
 		if job.TeamID == teamid && (job.State == StateWait || job.State == StateRunning) {
 			return true
 		}
