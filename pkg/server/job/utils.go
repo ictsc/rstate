@@ -43,7 +43,7 @@ func (j *Worker) GetJobList(teamId string) []*ResponseJob {
 
 	var result []*ResponseJob
 	for _, object := range j.c.Items() {
-		job := object.Object.(*Job)
+		job := object.Object.(Job)
 		var stateString string
 		switch job.State {
 		case StateWait:
