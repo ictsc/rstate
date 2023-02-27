@@ -49,7 +49,7 @@ func NewWorker(maxThread int, terraformPath, workDir string, env []string, logge
 	c := cache.New(cache.NoExpiration, 5*time.Minute)
 	jw := &Worker{
 		workerPool:      workerpool.New(maxThread),
-		adminWorkerPool: workerpool.New(1),
+		adminWorkerPool: workerpool.New(maxThread),
 		terraformPath:   terraformPath,
 		workDir:         workDir,
 		env:             env,
