@@ -17,13 +17,20 @@ type StatusHandler struct {
 	jobWorker *job.Worker
 }
 
+type RecreateProblemStatusResponse struct {
+	Available      bool       `json:"available"`
+	Created_time   *time.Time `json:"created_time"`
+	Completed_time *time.Time `json:"completed_time"`
+}
+
 func NewStatusHandler(rg *gin.RouterGroup, jobw *job.Worker) *StatusHandler {
 	sh := &StatusHandler{
 		rg:        rg,
 		jobWorker: jobw,
 	}
-	sh.rg.GET("/:token", sh.statusHtml)
-	sh.rg.GET("/:token/list", sh.jobListAPI)
+	//	sh.rg.GET("/:token", sh.statusHtml)
+	//	sh.rg.GET("/:token/list", sh.jobListAPI)
+	sh.rg.GET("/:teamid/:probcode", sh.GetStatusWithParam)
 	return sh
 }
 
@@ -103,4 +110,36 @@ func (sh *StatusHandler) jobListAPI(c *gin.Context) {
 		return
 	}
 	c.JSON(200, sh.jobWorker.GetJobList(teamId))
+}
+
+func (sh *StatusHandler) GetStatusWithParam(c *gin.Context) {
+	teamId := c.Param("teamid")
+	probCode := c.Param("probcode")
+	job, exist := sh.jobWorker.IsJobExist(teamId, probCode)
+	if exist {
+		response := RecreateProblemStatusResponse{
+			Available:      false,
+			Created_time:   &job.CreatedTime,
+			Completed_time: &job.EndTime,
+		}
+		c.JSONP(200, response)
+		return
+	}
+	//Available
+	if job != nil {
+		response := RecreateProblemStatusResponse{
+			Available:      true,
+			Created_time:   &job.CreatedTime,
+			Completed_time: &job.EndTime,
+		}
+		c.JSONP(200, response)
+		return
+	}
+	response := RecreateProblemStatusResponse{
+		Available:      true,
+		Created_time:   nil,
+		Completed_time: nil,
+	}
+	c.JSONP(200, response)
+
 }
