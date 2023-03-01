@@ -103,7 +103,7 @@ func (ah *AdminHandler) postJob(c *gin.Context) {
 	job := job.Job{
 		TeamID:      teamId,
 		ProbID:      probId,
-		CreatedTime: time.Now(),
+		CreatedTime: utils.ToTimePtr(time.Now()),
 		Priority:    priority,
 		Id:          id,
 	}

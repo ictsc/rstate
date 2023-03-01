@@ -35,14 +35,14 @@ type Worker struct {
 }
 
 type Job struct {
-	Id          uuid.UUID `json:"id"`
-	State       State     `json:"state"`
-	CreatedTime time.Time `json:"created_time"`
-	EndTime     time.Time `json:"end_time"`
-	Priority    int64     `json:"priority"`
-	TeamID      string    `json:"team_id"`
-	ProbID      string    `json:"prob_id"`
-	WorkDir     string    `json:"-"`
+	Id          uuid.UUID  `json:"id"`
+	State       State      `json:"state"`
+	CreatedTime *time.Time `json:"created_time"`
+	EndTime     *time.Time `json:"end_time"`
+	Priority    int64      `json:"priority"`
+	TeamID      string     `json:"team_id"`
+	ProbID      string     `json:"prob_id"`
+	WorkDir     string     `json:"-"`
 }
 
 func NewWorker(maxThread int, terraformPath, workDir string, env []string, logger *zap.SugaredLogger) *Worker {
@@ -108,7 +108,7 @@ func (j *Worker) SetState(id uuid.UUID, state State) error {
 	case StateError:
 	case StateSuccess:
 		j.counter--
-		j.jobs[id].EndTime = time.Now()
+		j.jobs[id].EndTime = utils.ToTimePtr(time.Now())
 		break
 	}
 	j.c.Set(id.String(), *j.jobs[id], 24*14*time.Hour)
@@ -134,7 +134,7 @@ func (j *Worker) Run() {
 		str := fmt.Sprintf("チーム:　%s\n問題:　　%s\n", job.TeamID, job.ProbID)
 		log.Println(str)
 		job.State = StateWait
-		job.CreatedTime = time.Now()
+		job.CreatedTime = utils.ToTimePtr(time.Now())
 
 		j.m.Lock()
 		// 追加
