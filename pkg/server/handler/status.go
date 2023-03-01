@@ -115,8 +115,8 @@ func (sh *StatusHandler) jobListAPI(c *gin.Context) {
 }
 
 func (sh *StatusHandler) postJob(c *gin.Context) {
-	teamId := c.Param("team_id")
-	probId := c.Param("prob_id")
+	teamId := c.Param("teamid")
+	probId := c.Param("probcode")
 
 	if !strings.HasPrefix(teamId, "team") || len(probId) < 3 {
 		c.String(400, "BadRequest!")
