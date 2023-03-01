@@ -65,11 +65,18 @@ func (j *Worker) GetJobList(teamId string) []*ResponseJob {
 			stateString = "Unknown State"
 			break
 		}
+		var createdtime, endtime int64
+		if job.CreatedTime == nil {
+			createdtime = time.Now().UnixNano()
+		}
+		if job.EndTime == nil {
+			endtime = time.Now().UnixNano()
+		}
 		res := &ResponseJob{
 			Id:          job.Id,
 			State:       stateString,
-			CreatedTime: job.CreatedTime.UnixNano(),
-			EndTime:     job.EndTime.UnixNano(),
+			CreatedTime: createdtime,
+			EndTime:     endtime,
 			TeamID:      job.TeamID[4:],
 			ProbID:      job.ProbID,
 		}
