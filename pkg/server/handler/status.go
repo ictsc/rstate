@@ -32,7 +32,7 @@ func NewStatusHandler(rg *gin.RouterGroup, jobw *job.Worker) *StatusHandler {
 	//	sh.rg.GET("/:token", sh.statusHtml)
 	//	sh.rg.GET("/:token/list", sh.jobListAPI)
 	sh.rg.GET("/:teamid/:probcode", sh.GetStatusWithParam)
-	sh.rg.POST("/:teamid/probcode", sh.postJob)
+	sh.rg.POST("/:teamid/:probcode", sh.postJob)
 	return sh
 }
 
