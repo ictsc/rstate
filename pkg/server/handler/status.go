@@ -19,9 +19,9 @@ type StatusHandler struct {
 }
 
 type RecreateProblemStatusResponse struct {
-	Available      bool       `json:"available"`
-	Created_time   *time.Time `json:"created_time"`
-	Completed_time *time.Time `json:"completed_time"`
+	Available      bool      `json:"available"`
+	Created_time   time.Time `json:"created_time"`
+	Completed_time time.Time `json:"completed_time"`
 }
 
 func NewStatusHandler(rg *gin.RouterGroup, jobw *job.Worker) *StatusHandler {
@@ -158,8 +158,8 @@ func (sh *StatusHandler) GetStatusWithParam(c *gin.Context) {
 	if exist {
 		response := RecreateProblemStatusResponse{
 			Available:      false,
-			Created_time:   &job.CreatedTime,
-			Completed_time: &job.EndTime,
+			Created_time:   job.CreatedTime,
+			Completed_time: job.EndTime,
 		}
 		c.JSONP(200, response)
 		return
@@ -168,16 +168,16 @@ func (sh *StatusHandler) GetStatusWithParam(c *gin.Context) {
 	if job != nil {
 		response := RecreateProblemStatusResponse{
 			Available:      true,
-			Created_time:   &job.CreatedTime,
-			Completed_time: &job.EndTime,
+			Created_time:   job.CreatedTime,
+			Completed_time: job.EndTime,
 		}
 		c.JSONP(200, response)
 		return
 	}
 	response := RecreateProblemStatusResponse{
 		Available:      true,
-		Created_time:   nil,
-		Completed_time: nil,
+		Created_time:   time.Time{},
+		Completed_time: time.Time{},
 	}
 	c.JSONP(200, response)
 
