@@ -18,21 +18,20 @@ import (
 )
 
 type Worker struct {
-	workerPool      map[string]*workerpool.WorkerPool
-	workerPoolLock  sync.Mutex
-	adminWorkerPool *workerpool.WorkerPool
-	terraformPath   string
-	workDir         string
-	env             []string
-	logger          *zap.SugaredLogger
-	AddTaskChannel  chan Job
-	m               sync.Mutex //job list lock
-	jobs            map[uuid.UUID]*Job
-	counter         int
-	c               *cache.Cache
-	s               sync.Mutex //save file lock
-	tokenCache      *cache.Cache
-	stop            bool
+	workerPool     map[string]*workerpool.WorkerPool
+	workerPoolLock sync.Mutex
+	terraformPath  string
+	workDir        string
+	env            []string
+	logger         *zap.SugaredLogger
+	AddTaskChannel chan Job
+	m              sync.Mutex //job list lock
+	jobs           map[uuid.UUID]*Job
+	counter        int
+	c              *cache.Cache
+	s              sync.Mutex //save file lock
+	tokenCache     *cache.Cache
+	stop           bool
 }
 
 type Job struct {
@@ -49,17 +48,16 @@ type Job struct {
 func NewWorker(maxThread int, terraformPath, workDir string, env []string, logger *zap.SugaredLogger) *Worker {
 	c := cache.New(cache.NoExpiration, 5*time.Minute)
 	jw := &Worker{
-		workerPool:      map[string]*workerpool.WorkerPool{},
-		adminWorkerPool: workerpool.New(maxThread),
-		terraformPath:   terraformPath,
-		workDir:         workDir,
-		env:             env,
-		logger:          logger,
-		AddTaskChannel:  make(chan Job, 100),
-		jobs:            map[uuid.UUID]*Job{},
-		c:               c,
-		tokenCache:      cache.New(24*time.Hour, 10*time.Minute),
-		stop:            false,
+		workerPool:     map[string]*workerpool.WorkerPool{},
+		terraformPath:  terraformPath,
+		workDir:        workDir,
+		env:            env,
+		logger:         logger,
+		AddTaskChannel: make(chan Job, 100),
+		jobs:           map[uuid.UUID]*Job{},
+		c:              c,
+		tokenCache:     cache.New(24*time.Hour, 10*time.Minute),
+		stop:           false,
 	}
 	return jw
 }
@@ -153,9 +151,6 @@ func (j *Worker) Run() {
 			j.workerPool[job.TeamID] = wo
 		}
 		j.workerPoolLock.Unlock()
-		if utils.IsAdminTeam(job.TeamID) {
-			wo = j.adminWorkerPool
-		}
 
 		wo.Submit(func() {
 			j.SetState(job.Id, StateRunning)
@@ -187,22 +182,6 @@ func (j *Worker) IsJobExist(teamid, probid string) (*Job, bool) {
 	var latestJob *Job
 
 	var latestJobEndTime int64
-	if utils.IsAdminTeam(teamid) {
-		// 運営チームは、admin-worker-poolでworker 1で利用する
-		for _, obj := range j.c.Items() {
-			job := obj.Object.(Job)
-			if job.TeamID == teamid && job.ProbID == probid && (job.State == StateWait || job.State == StateRunning) {
-				return &job, true
-			}
-			if job.TeamID == teamid && job.ProbID == probid {
-				if job.EndTime.UnixNano() >= latestJobEndTime {
-					latestJob = &job
-					latestJobEndTime = job.EndTime.UnixNano()
-				}
-			}
-		}
-		return latestJob, false
-	}
 
 	// 参加者1チームにつき1問リクエストできる。
 	for _, obj := range j.c.Items() {

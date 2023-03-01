@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -31,6 +32,7 @@ func NewStatusHandler(rg *gin.RouterGroup, jobw *job.Worker) *StatusHandler {
 	//	sh.rg.GET("/:token", sh.statusHtml)
 	//	sh.rg.GET("/:token/list", sh.jobListAPI)
 	sh.rg.GET("/:teamid/:probcode", sh.GetStatusWithParam)
+	sh.rg.POST("/:teamid/probcode", sh.postJob)
 	return sh
 }
 
@@ -110,6 +112,43 @@ func (sh *StatusHandler) jobListAPI(c *gin.Context) {
 		return
 	}
 	c.JSON(200, sh.jobWorker.GetJobList(teamId))
+}
+
+func (sh *StatusHandler) postJob(c *gin.Context) {
+	teamId := c.Param("team_id")
+	probId := c.Param("prob_id")
+
+	if !strings.HasPrefix(teamId, "team") || len(probId) < 3 {
+		c.String(400, "BadRequest!")
+		return
+	}
+
+	id, err := uuid.NewUUID()
+	if err != nil {
+		log.Println(err)
+	}
+
+	now := time.Now()
+	priority := now.UnixNano()
+	if utils.IsAdminTeam(teamId) {
+		priority = 1
+	}
+
+	job := job.Job{
+		TeamID:      teamId,
+		ProbID:      probId,
+		CreatedTime: time.Now(),
+		Priority:    priority,
+		Id:          id,
+	}
+
+	if _, exist := sh.jobWorker.IsJobExist(teamId, probId); exist {
+		c.String(http.StatusConflict, "")
+		return
+	}
+
+	sh.jobWorker.AddTaskChannel <- job
+	c.JSONP(http.StatusOK, job)
 }
 
 func (sh *StatusHandler) GetStatusWithParam(c *gin.Context) {
