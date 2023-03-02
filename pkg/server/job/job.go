@@ -165,7 +165,7 @@ func (j *Worker) Run() {
 			}
 			j.SetState(job.Id, StateSuccess)
 			if utils.IsAdminTeam(job.TeamID) {
-				notifications.NewNotifications(job.ProbID+" - 完了", str, job.ProbID).SendAll()
+				notifications.NewNotifications("運営チーム "+job.ProbID+" - 再展開完了", str, job.ProbID).SendAll()
 			}
 		})
 
