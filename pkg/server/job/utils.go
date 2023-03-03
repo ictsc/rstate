@@ -76,7 +76,7 @@ func (j *Worker) GetJobList(teamId string) []*ResponseJob {
 		if job.EndTime == nil {
 			endtime = time.Now().UnixNano()
 		} else {
-			endtime = time.Now().UnixNano()
+			endtime = job.EndTime.UnixNano()
 		}
 
 		res := &ResponseJob{
