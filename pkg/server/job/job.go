@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -159,13 +158,8 @@ func (j *Worker) Run() {
 			//terraform init
 			tfclient := terraform.NewClient(j.terraformPath, j.workDir, job.TeamID, "10", false, j.env)
 			j.logger.Info("Recreate Problem Start", "TeamID", job.TeamID, "ProbID", job.ProbID)
-			result, targetCount, err := tfclient.RecreateFromProblemId(job.ProbID, false)
-			filename := fmt.Sprintf("/app/recreate-logs/%s-%s-%s.stdout", job.TeamID, job.ProbID, time.Now().Format("2006-01-02-15-04-05"))
-			f, errf := os.Create(filename)
-			if errf == nil {
-				f.Write([]byte(result))
-				f.Close()
-			}
+			_, targetCount, err := tfclient.RecreateFromProblemId(job.ProbID, false)
+
 			if err != nil {
 				j.logger.Errorw("Recreate Problem Error", "TeamID", job.TeamID, "ProbID", job.ProbID, "targetCount", targetCount, "error", err)
 				j.SetState(job.Id, StateError)
