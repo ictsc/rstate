@@ -35,7 +35,7 @@ func Launch(port string, jobWorker *job.Worker, basicPass string) {
 
 	//User
 
-	handler.NewStatusHandler(g.Group("/status"), jobWorker)
+	handler.NewStatusHandler(g.Group("/backend"), jobWorker)
 
 	//Prometheus
 

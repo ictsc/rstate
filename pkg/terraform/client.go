@@ -24,8 +24,8 @@ type Client struct {
 func NewClient(path, workDir, workspace, parallelism string, stdout bool, envs []string) *Client {
 	mergeEnv := append(os.Environ(), envs...)
 	mergeEnv = append(mergeEnv, "TF_WORKSPACE="+workspace)
-	mergeEnv = append(mergeEnv, "TF_LOG=ERROR")
-	logPath := fmt.Sprintf("TF_LOG_PATH=./recreate-logs/%s-%s.json", workspace, time.Now().Format("2006-01-02-15-04-05"))
+	mergeEnv = append(mergeEnv, "TF_LOG=INFO")
+	logPath := fmt.Sprintf("TF_LOG_PATH=/app/recreate-logs/%s-%s.json", workspace, time.Now().Format("2006-01-02-15-04-05"))
 	mergeEnv = append(mergeEnv, logPath)
 	c := &Client{
 		parallelism: parallelism,
@@ -63,7 +63,7 @@ func (c *Client) validate() (string, error) {
 }
 
 func (c *Client) plan(opt string) (string, error) {
-	args := strings.Fields("plan -input=false -detailed-exitcode -lock-timeout=0s -lock=true -parallelism=" + c.parallelism + " -refresh=false " + opt)
+	args := strings.Fields("plan -input=false -detailed-exitcode -lock-timeout=0s -lock=true -parallelism=" + c.parallelism + " -refresh=true " + opt)
 	cmd := exec.Command(c.path, args...)
 	fmt.Println(cmd.String())
 	cmd.Env = c.env
@@ -73,7 +73,7 @@ func (c *Client) plan(opt string) (string, error) {
 }
 
 func (c *Client) apply(opt string) (string, error) {
-	args := strings.Fields("apply -auto-approve  -no-color -input=false -lock-timeout=0s -lock=true -parallelism=" + c.parallelism + " -refresh=false " + opt)
+	args := strings.Fields("apply -auto-approve  -no-color -input=false -lock-timeout=0s -lock=true -parallelism=" + c.parallelism + " -refresh=true " + opt)
 	cmd := exec.Command(c.path, args...)
 	fmt.Println(cmd.String())
 	cmd.Env = c.env

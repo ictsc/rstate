@@ -12,13 +12,15 @@ import (
 var SlackWebHookURL string
 
 type SlackWebHook struct {
-	Text string `json:"text"`
+	Text    string `json:"text"`
+	Channel string `json:"channel"`
 }
 
-func Send(title, description string) error {
+func Send(title, description, channel string) error {
 	SlackWebHookURL = os.Getenv("SLACK_WEBHOOK_URL")
 	slackPayload := &SlackWebHook{
-		Text: fmt.Sprintf("[%s]  \n%s", title, description),
+		Text:    fmt.Sprintf("[%s]  \n%s", title, description),
+		Channel: fmt.Sprintf("#problem-%s", channel),
 	}
 	j, err := json.Marshal(slackPayload)
 	if err != nil {

@@ -48,3 +48,7 @@ func IsAdminTeam(teamId string) bool {
 	}
 	return false
 }
+
+func ToTimePtr(t time.Time) *time.Time {
+	return &t
+}

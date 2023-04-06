@@ -18,47 +18,46 @@ import (
 )
 
 type Worker struct {
-	workerPool      *workerpool.WorkerPool
-	adminWorkerPool *workerpool.WorkerPool
-	terraformPath   string
-	workDir         string
-	env             []string
-	logger          *zap.SugaredLogger
-	AddTaskChannel  chan Job
-	m               sync.Mutex //job list lock
-	jobs            map[uuid.UUID]*Job
-	counter         int
-	c               *cache.Cache
-	s               sync.Mutex //save file lock
-	tokenCache      *cache.Cache
-	stop            bool
+	workerPool     map[string]*workerpool.WorkerPool
+	workerPoolLock sync.Mutex
+	terraformPath  string
+	workDir        string
+	env            []string
+	logger         *zap.SugaredLogger
+	AddTaskChannel chan Job
+	m              sync.Mutex //job list lock
+	jobs           map[uuid.UUID]*Job
+	counter        int
+	c              *cache.Cache
+	s              sync.Mutex //save file lock
+	tokenCache     *cache.Cache
+	stop           bool
 }
 
 type Job struct {
-	Id          uuid.UUID `json:"id"`
-	State       State     `json:"state"`
-	CreatedTime time.Time `json:"created_time"`
-	EndTime     time.Time `json:"end_time"`
-	Priority    int64     `json:"priority"`
-	TeamID      string    `json:"team_id"`
-	ProbID      string    `json:"prob_id"`
-	WorkDir     string    `json:"-"`
+	Id          uuid.UUID  `json:"id"`
+	State       State      `json:"state"`
+	CreatedTime *time.Time `json:"created_time"`
+	EndTime     *time.Time `json:"end_time"`
+	Priority    int64      `json:"priority"`
+	TeamID      string     `json:"team_id"`
+	ProbID      string     `json:"prob_id"`
+	WorkDir     string     `json:"-"`
 }
 
 func NewWorker(maxThread int, terraformPath, workDir string, env []string, logger *zap.SugaredLogger) *Worker {
 	c := cache.New(cache.NoExpiration, 5*time.Minute)
 	jw := &Worker{
-		workerPool:      workerpool.New(maxThread),
-		adminWorkerPool: workerpool.New(1),
-		terraformPath:   terraformPath,
-		workDir:         workDir,
-		env:             env,
-		logger:          logger,
-		AddTaskChannel:  make(chan Job, 100),
-		jobs:            map[uuid.UUID]*Job{},
-		c:               c,
-		tokenCache:      cache.New(24*time.Hour, 10*time.Minute),
-		stop:            false,
+		workerPool:     map[string]*workerpool.WorkerPool{},
+		terraformPath:  terraformPath,
+		workDir:        workDir,
+		env:            env,
+		logger:         logger,
+		AddTaskChannel: make(chan Job, 100),
+		jobs:           map[uuid.UUID]*Job{},
+		c:              c,
+		tokenCache:     cache.New(24*time.Hour, 10*time.Minute),
+		stop:           false,
 	}
 	return jw
 }
@@ -85,7 +84,9 @@ func (j *Worker) LoadJob() {
 
 func (j *Worker) StopWait() {
 	j.stop = true
-	j.workerPool.StopWait()
+	for _, w := range j.workerPool {
+		w.StopWait()
+	}
 }
 
 func (j *Worker) GetState(id uuid.UUID) State {
@@ -107,7 +108,7 @@ func (j *Worker) SetState(id uuid.UUID, state State) error {
 	case StateError:
 	case StateSuccess:
 		j.counter--
-		j.jobs[id].EndTime = time.Now()
+		j.jobs[id].EndTime = utils.ToTimePtr(time.Now())
 		break
 	}
 	j.c.Set(id.String(), *j.jobs[id], 24*14*time.Hour)
@@ -130,44 +131,48 @@ func (j *Worker) Run() {
 		if j.stop { //signal
 			return
 		}
-		if !j.IsJobExist(job.TeamID, job.ProbID) {
-			str := fmt.Sprintf("チーム:　%s\n問題:　　%s\n", job.TeamID, job.ProbID)
-			log.Println(str)
-			job.State = StateWait
-			job.CreatedTime = time.Now()
+		str := fmt.Sprintf("チーム:　%s\n問題:　　%s\n", job.TeamID, job.ProbID)
+		log.Println(str)
+		job.State = StateWait
+		job.CreatedTime = utils.ToTimePtr(time.Now())
 
-			j.m.Lock()
-			// 追加
-			j.counter++
-			j.jobs[job.Id] = &job
-			j.c.Set(job.Id.String(), job, 24*14*time.Hour)
-			j.m.Unlock()
+		j.m.Lock()
+		// 追加
+		j.counter++
+		j.jobs[job.Id] = &job
+		j.c.Set(job.Id.String(), job, 24*14*time.Hour)
+		j.m.Unlock()
 
-			//Submit Task
-			wo := j.workerPool
-			if utils.IsAdminTeam(job.TeamID) {
-				wo = j.adminWorkerPool
-			}
-			wo.Submit(func() {
-				j.SetState(job.Id, StateRunning)
-
-				//terraform init
-				tfclient := terraform.NewClient(j.terraformPath, j.workDir, job.TeamID, "10", true, j.env)
-				j.logger.Info("Recreate Problem Start", "TeamID", job.TeamID, "ProbID", job.ProbID)
-				_, targetCount, err := tfclient.RecreateFromProblemId(job.ProbID, true)
-				if err != nil {
-					j.logger.Errorw("Recreate Problem Error", "TeamID", job.TeamID, "ProbID", job.ProbID, "targetCount", targetCount, "error", err)
-					j.SetState(job.Id, StateError)
-				}
-				j.SetState(job.Id, StateSuccess)
-				if utils.IsAdminTeam(job.TeamID) {
-					notifications.NewNotifications(job.ProbID+" - 完了", str).SendAll()
-				}
-			})
-
-		} else {
-			job.State = StateTaskLimit
+		//Submit Task
+		j.workerPoolLock.Lock()
+		wo, exist := j.workerPool[job.TeamID]
+		if !exist {
+			wo = workerpool.New(1)
+			j.workerPool[job.TeamID] = wo
 		}
+		j.workerPoolLock.Unlock()
+
+		wo.Submit(func() {
+			j.SetState(job.Id, StateRunning)
+
+			//terraform init
+			tfclient := terraform.NewClient(j.terraformPath, j.workDir, job.TeamID, "10", false, j.env)
+			j.logger.Info("Recreate Problem Start", "TeamID", job.TeamID, "ProbID", job.ProbID)
+			_, targetCount, err := tfclient.RecreateFromProblemId(job.ProbID, false)
+
+			if err != nil {
+				j.logger.Errorw("Recreate Problem Error", "TeamID", job.TeamID, "ProbID", job.ProbID, "targetCount", targetCount, "error", err)
+				j.SetState(job.Id, StateError)
+				notifications.NewNotifications(""+job.ProbID+" - 再展開エラー!!!", str, job.ProbID).SendAll()
+				return
+			}
+
+			j.SetState(job.Id, StateSuccess)
+			if utils.IsAdminTeam(job.TeamID) {
+				notifications.NewNotifications("運営チーム "+job.ProbID+" - 再展開完了", str, job.ProbID).SendAll()
+			}
+		})
+
 		j.s.Lock()
 		j.c.Set(job.Id.String(), job, 24*14*time.Hour)
 		j.c.SaveFile(j.workDir + "/job.state")
@@ -175,31 +180,25 @@ func (j *Worker) Run() {
 	}
 }
 
-func (j *Worker) IsJobExist(teamid, probid string) bool {
+func (j *Worker) IsJobExist(teamid, probid string) (*Job, bool) {
 	j.m.Lock()
 	defer j.m.Unlock()
+	var latestJob *Job
 
-	if utils.IsAdminTeam(teamid) {
-		// 運営チームは、admin-worker-poolでworker 1で利用する
-		for _, obj := range j.c.Items() {
-			job := obj.Object.(Job)
-			if job.TeamID == teamid && job.ProbID == probid && (job.State == StateWait || job.State == StateRunning) {
-				return true
-			}
-		}
-		return false
-	}
-	// 競技時間外はLimit
-	if !utils.IsCompetitionTime(teamid) {
-		return true
-	}
+	var latestJobEndTime int64
 
 	// 参加者1チームにつき1問リクエストできる。
 	for _, obj := range j.c.Items() {
 		job := obj.Object.(Job)
-		if job.TeamID == teamid && (job.State == StateWait || job.State == StateRunning) {
-			return true
+		if job.TeamID == teamid && job.ProbID == probid && (job.State == StateWait || job.State == StateRunning) {
+			return &job, true
+		}
+		if job.TeamID == teamid && job.ProbID == probid {
+			if job.EndTime.UnixNano() >= latestJobEndTime {
+				latestJob = &job
+				latestJobEndTime = job.EndTime.UnixNano()
+			}
 		}
 	}
-	return false
+	return latestJob, false
 }

@@ -103,17 +103,16 @@ func (ah *AdminHandler) postJob(c *gin.Context) {
 	job := job.Job{
 		TeamID:      teamId,
 		ProbID:      probId,
-		CreatedTime: time.Now(),
+		CreatedTime: utils.ToTimePtr(time.Now()),
 		Priority:    priority,
 		Id:          id,
 	}
 
-	if ah.jobWorker.IsJobExist(teamId, probId) {
-		ah.jobWorker.AddTaskChannel <- job
+	if _, exist := ah.jobWorker.IsJobExist(teamId, probId); exist {
 		c.String(400, url)
 		return
 	}
 
 	ah.jobWorker.AddTaskChannel <- job
-	c.String(200, url)
+	c.JSONP(200, job)
 }

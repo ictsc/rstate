@@ -8,12 +8,14 @@ import (
 type Notifications struct {
 	title       string
 	description string
+	channel     string
 }
 
-func NewNotifications(title, description string) *Notifications {
+func NewNotifications(title, description, channel string) *Notifications {
 	return &Notifications{
 		title:       title,
 		description: description,
+		channel:     channel,
 	}
 }
 
@@ -33,5 +35,5 @@ func (c *Notifications) SendDiscord() error {
 }
 
 func (c *Notifications) SendSlack() error {
-	return slack.Send(c.title, c.description)
+	return slack.Send(c.title, c.description, c.channel)
 }
