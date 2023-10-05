@@ -16,7 +16,7 @@ RUN go build \
     /go/src/cmd/terraform-server/*.go
 
 
-FROM hashicorp/terraform:1.5.6 as runner
+FROM hashicorp/terraform:1.6.0 as runner
 
 COPY --from=builder /go/bin/server /app/server
 COPY config.yaml /app/
