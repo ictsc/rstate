@@ -39,19 +39,6 @@ func (c *Client) DestroyFromProblemId(problemId string, plan bool) (string, erro
 	return c.apply(str)
 }
 
-func (c *Client) RecreateTeam(plan bool) (string, int, error) {
-	_, resourceCount, err := c.GetResourceTargetId("")
-	if err != nil {
-		return "", resourceCount, err
-	}
-
-	if _, err := c.DestroyTeam(plan); err != nil {
-		return "", resourceCount, err
-	}
-	result, err := c.CreateTeam(plan)
-	return result, resourceCount, err
-}
-
 func (c *Client) RecreateFromProblemId(problemId string, plan bool) (string, int, error) {
 	str, resourceCount, err := c.GetResourceTargetId("module." + problemId)
 	/*
