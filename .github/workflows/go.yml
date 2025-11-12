@@ -23,7 +23,7 @@ jobs:
           go.sum
 
     - name: Build
-      run: go build -v ./...
+      run: make build
 
     - name: Test
       run: go test -v ./...

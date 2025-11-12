@@ -37,6 +37,10 @@ func Launch(port string, jobWorker *job.Worker, basicPass string) {
 
 	handler.NewStatusHandler(g.Group("/backend"), jobWorker)
 
+	// SState API (OpenAPI-generated handlers)
+	sstateHandler := handler.NewSStateHandler(jobWorker)
+	handler.RegisterHandlers(g, sstateHandler)
+
 	//Prometheus
 
 	g.GET("/metrics", func(c *gin.Context) {

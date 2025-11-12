@@ -11,6 +11,16 @@ const (
 	StateTaskLimit = 4
 )
 
+// ResponseJob state strings (Japanese)
+const (
+	StateStringWait      = "開始待ち"
+	StateStringRunning   = "実行中"
+	StateStringSuccess   = "終了"
+	StateStringError     = "エラー"
+	StateStringTaskLimit = "Limit"
+	StateStringUnknown   = "Unknown State"
+)
+
 func (s State) String() string {
 	switch s {
 	case StateSuccess:

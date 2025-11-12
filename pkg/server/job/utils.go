@@ -47,23 +47,17 @@ func (j *Worker) GetJobList(teamId string) []*ResponseJob {
 		var stateString string
 		switch job.State {
 		case StateWait:
-			stateString = "開始待ち"
-			break
+			stateString = StateStringWait
 		case StateRunning:
-			stateString = "実行中"
-			break
+			stateString = StateStringRunning
 		case StateSuccess:
-			stateString = "終了"
-			break
+			stateString = StateStringSuccess
 		case StateError:
-			stateString = "エラー"
-			break
+			stateString = StateStringError
 		case StateTaskLimit:
-			stateString = "Limit"
-			break
+			stateString = StateStringTaskLimit
 		default:
-			stateString = "Unknown State"
-			break
+			stateString = StateStringUnknown
 		}
 		var createdtime, endtime int64
 
@@ -84,7 +78,7 @@ func (j *Worker) GetJobList(teamId string) []*ResponseJob {
 			State:       stateString,
 			CreatedTime: createdtime,
 			EndTime:     endtime,
-			TeamID:      job.TeamID[4:],
+			TeamID:      job.TeamID[4:], // Trim "team" prefix
 			ProbID:      job.ProbID,
 		}
 		if job.TeamID == teamId || teamId == "" {
@@ -101,9 +95,6 @@ func (j *Worker) FailedRunningJobs() {
 		switch job.State {
 		case StateRunning:
 			j.SetState(job.Id, StateError)
-			break
-		default:
-			break
 		}
 	}
 	j.c.SaveFile(j.workDir + "/job.state")
