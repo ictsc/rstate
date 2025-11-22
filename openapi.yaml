@@ -101,10 +101,10 @@ paths:
         - name: teamID
           in: path
           required: true
-          description: チームID（2桁の数字）
+          description: チームID（2〜3桁の数字）
           schema:
             type: string
-            pattern: '^\d{2}$'
+            pattern: '^\d{2,3}$'
             example: "01"
       responses:
         '200':
@@ -142,10 +142,10 @@ paths:
         - name: teamID
           in: path
           required: true
-          description: チームID（2桁の数字）
+          description: チームID（2〜3桁の数字）
           schema:
             type: string
-            pattern: '^\d{2}$'
+            pattern: '^\d{2,3}$'
             example: "01"
         - name: problemID
           in: path
@@ -222,8 +222,8 @@ components:
       properties:
         team_id:
           type: string
-          description: チームID（2桁の数字）
-          pattern: '^\d{2}$'
+          description: チームID（2〜3桁の数字）
+          pattern: '^\d{2,3}$'
           example: "01"
         problem_id:
           type: string

@@ -50,9 +50,9 @@ func (h *SStateHandler) PostRedeploy(c *gin.Context) {
 		return
 	}
 
-	// Validate team_id format (2 digits)
-	if len(req.TeamId) != 2 {
-		respondError(c, http.StatusBadRequest, "team_idは2桁の数字である必要があります")
+	// Validate team_id format (2-3 digits)
+	if len(req.TeamId) < 2 || len(req.TeamId) > 3 {
+		respondError(c, http.StatusBadRequest, "team_idは2〜3桁の数字である必要があります")
 		return
 	}
 
