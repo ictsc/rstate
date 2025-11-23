@@ -8,6 +8,7 @@ worker:
 
 terraform:
   options:
+    path: "terraform"
     workingDirectory: "/deploy"
     parallelism: 4
   secrets:

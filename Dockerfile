@@ -21,6 +21,8 @@ FROM hashicorp/terraform:1.11 as runner
 COPY --from=builder /go/bin/server /app/server
 COPY config.yaml /app/
 
+RUN mkdir -p /app/recreate-logs
+
 WORKDIR /app
 
 ENTRYPOINT ["/app/server"]
