@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: sstate API Server
+  description: 再展開リクエストを管理し、そのステータスを監視するためのAPIサーバー
+  version: 1.0.0
+  contact:
+    name: ICTSC
+    url: https://github.com/ictsc/sstate
+
+servers:
+  - url: https://localhost
+    description: Local server with HTTPS
+
+security:
+  - basicAuth: []
+
+paths:
+  /redeploy:
+    post:
+      summary: 再展開リクエストの送信
+      description: |
+        再展開リクエストを処理します。問題なければリクエストをキューに追加します。
+        同じチームID+問題IDのリクエストが既にキュー内または処理中の場合はエラーを返します。
+      operationId: postRedeploy
+      tags:
+        - Redeploy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeployRequest'
+            examples:
+              example1:
+                summary: 再展開リクエストの例
+                value:
+                  team_id: "01"
+                  problem_id: "ABC"
+      responses:
+        '201':
+          description: リクエスト受け付け成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: accepted
+                  message:
+                    type: string
+                    example: 再展開リクエストを受け付けました
+        '400':
+          description: リクエストフォーマットエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidFormat:
+                  summary: 無効なリクエストフォーマット
+                  value:
+                    status: error
+                    message: 無効なリクエストフォーマットです
+                invalidTeamID:
+                  summary: team_idの形式エラー
+                  value:
+                    status: error
+                    message: team_idは2桁の数字である必要があります
+                invalidProblemID:
+                  summary: problem_idが無効
+                  value:
+                    status: error
+                    message: 無効なproblem_idです
+        '429':
+          description: 同時リクエスト制限またはキューが満杯
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                alreadyInQueue:
+                  summary: 既にキューに存在
+                  value:
+                    status: error
+                    message: 同じチームの問題のリクエストは既にキューに存在します
+                queueFull:
+                  summary: キューが満杯
+                  value:
+                    status: error
+                    message: リクエストキューが満杯です
+
+  /status/{teamID}:
+    get:
+      summary: チーム全体のステータス取得
+      description: 特定のチームにおける全ての問題のステータスを取得します
+      operationId: getTeamStatus
+      tags:
+        - Status
+      parameters:
+        - name: teamID
+          in: path
+          required: true
+          description: チームID（2〜3桁の数字）
+          schema:
+            type: string
+            pattern: '^\d{2,3}$'
+            example: "01"
+      responses:
+        '200':
+          description: ステータスのJSONリスト
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/RedeployStatus'
+              example:
+                ABC:
+                  status: Running
+                  message: チーム 01 の問題 01 のリソースが正常に再展開されました
+                  updated_at: "2024-01-15T10:30:00Z"
+                DEF:
+                  status: Queuing
+                  message: 再展開リクエストを受け取りました
+                  updated_at: "2024-01-15T10:32:00Z"
+        '400':
+          description: 無効なパス
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /status/{teamID}/{problemID}:
+    get:
+      summary: 特定の問題のステータス取得
+      description: チーム内の特定の問題のステータスを取得します
+      operationId: getProblemStatus
+      tags:
+        - Status
+      parameters:
+        - name: teamID
+          in: path
+          required: true
+          description: チームID（2〜3桁の数字）
+          schema:
+            type: string
+            pattern: '^\d{2,3}$'
+            example: "01"
+        - name: problemID
+          in: path
+          required: true
+          description: 問題ID（アルファベット形式、problem_mapping.jsonで定義されたもの）
+          schema:
+            type: string
+            example: "ABC"
+      responses:
+        '200':
+          description: ステータスのJSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeployStatus'
+              example:
+                status: Running
+                message: チーム 01 の問題 01 のリソースが正常に再展開されました
+                updated_at: "2024-01-15T10:30:00Z"
+        '404':
+          description: 問題が見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  summary: 問題が見つからない
+                  value:
+                    status: error
+                    message: 指定されたチームIDと問題IDの状態は見つかりません
+                invalidProblemID:
+                  summary: 問題IDが無効
+                  value:
+                    status: error
+                    message: 指定された問題IDが無効です
+
+  /monitor:
+    get:
+      summary: キューの状態取得（未使用）
+      description: |
+        キューの現在の状態を取得します。キュー内にある全てのチームと問題のペアが含まれます。
+        注意: このエンドポイントは未使用とドキュメントに記載されています。
+      operationId: getQueueStatus
+      tags:
+        - Monitor
+      deprecated: true
+      responses:
+        '200':
+          description: キューエントリのJSONリスト
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueStatus'
+              example:
+                in_queue:
+                  - "01_01"
+                  - "02_03"
+                  - "05_01"
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic認証（.htpasswdで管理）
+
+  schemas:
+    RedeployRequest:
+      type: object
+      required:
+        - team_id
+        - problem_id
+      properties:
+        team_id:
+          type: string
+          description: チームID（2〜3桁の数字）
+          pattern: '^\d{2,3}$'
+          example: "01"
+        problem_id:
+          type: string
+          description: 問題ID（アルファベット形式、problem_mapping.jsonで定義）
+          example: "ABC"
+
+    RedeployStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: 再展開の状態
+          enum:
+            - Queuing
+            - Creating
+            - Running
+            - Error
+          example: Running
+        message:
+          type: string
+          description: 状態に関するメッセージ
+          example: チーム 01 の問題 01 のリソースが正常に再展開されました
+        updated_at:
+          type: string
+          format: date-time
+          description: 最終更新日時
+          example: "2024-01-15T10:30:00Z"
+
+    QueueStatus:
+      type: object
+      properties:
+        in_queue:
+          type: array
+          description: キューに入っているチームID_問題IDのリスト
+          items:
+            type: string
+            pattern: '^\d{2}_\d{2}$'
+          example:
+            - "01_01"
+            - "02_03"
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: エラーメッセージ
+
+tags:
+  - name: Redeploy
+    description: 再展開リクエストの管理
+  - name: Status
+    description: ステータスの取得
+  - name: Monitor
+    description: キュー監視（未使用）

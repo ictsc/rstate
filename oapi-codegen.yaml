@@ -1,0 +1,8 @@
+package: handler
+output-options:
+  skip-prune: true
+generate:
+  gin-server: true
+  models: true
+  embedded-spec: true
+output: pkg/server/handler/sstate.gen.go

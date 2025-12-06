@@ -110,7 +110,11 @@ func (c *Client) GetResourceTargetId(moduleName string) (string, int, error) {
 	resource := ""
 	resourceCount := 0
 
-	cmd := exec.Command(c.path, c.options, "state", "list", moduleName)
+	args := []string{"state", "list", moduleName}
+	if c.options != "" {
+		args = append([]string{c.options}, args...)
+	}
+	cmd := exec.Command(c.path, args...)
 	cmd.Env = c.env
 	cmd.Dir = c.workDir
 	stdoutStderr, err := cmd.CombinedOutput()

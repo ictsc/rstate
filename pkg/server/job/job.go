@@ -77,7 +77,7 @@ func (j *Worker) LoadJob() {
 			j.AddTaskChannel <- job
 		}
 		if job.State == StateRunning {
-			j.c.Set(job.Id.String(), &job, 24*3*time.Hour)
+			j.c.Set(job.Id.String(), job, 24*3*time.Hour)
 		}
 	}
 }
